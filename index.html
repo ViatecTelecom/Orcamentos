@@ -1,0 +1,3654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Orçamentos ViaTec</title>
+
+  <!-- Biblioteca mantida para compatibilidade caso queira voltar ao PDF por HTML no futuro -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    :root {
+      --azul: #0057b8;
+      --azul-escuro: #003b7a;
+      --azul-soft: #eef6ff;
+      --verde: #00a859;
+      --verde-escuro: #007a41;
+      --verde-soft: #eafff4;
+      --texto: #172033;
+      --muted: #64748b;
+      --borda: #d9e5f2;
+      --vermelho: #dc2626;
+      --sombra: 0 18px 45px rgba(0, 43, 92, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--texto);
+      background:
+        linear-gradient(120deg, rgba(0, 87, 184, 0.10), transparent 32%),
+        linear-gradient(315deg, rgba(0, 168, 89, 0.10), transparent 34%),
+        #f5f9ff;
+    }
+
+    header {
+      background:
+        linear-gradient(
+          135deg,
+          rgba(0, 59, 122, 0.98),
+          rgba(0, 87, 184, 0.96) 48%,
+          rgba(0, 168, 89, 0.95)
+        );
+      color: #ffffff;
+      padding: 22px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      box-shadow: 0 10px 28px rgba(0, 43, 92, 0.16);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      right: -70px;
+      top: -80px;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+    }
+
+    header > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 25px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    header small {
+      display: block;
+      margin-top: 4px;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    #dataHoje {
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      padding: 10px 14px;
+      border-radius: 999px;
+      backdrop-filter: blur(8px);
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 12px 18px;
+      background: rgba(245, 249, 255, 0.86);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(0, 87, 184, 0.10);
+      box-shadow: 0 8px 22px rgba(0, 43, 92, 0.07);
+    }
+
+    .tabs button,
+    .btn {
+      border: 0;
+      cursor: pointer;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+      vertical-align: middle;
+      line-height: 1.15;
+      gap: 7px;
+      white-space: nowrap;
+      font-family: Arial, Helvetica, sans-serif;
+      font-weight: 900;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    }
+
+    .tabs button {
+      min-width: 150px;
+      min-height: 42px;
+      padding: 11px 17px;
+      border-radius: 999px;
+      font-size: 14px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #24415f;
+      border: 1px solid #dbe8f7;
+      box-shadow: 0 4px 12px rgba(0, 43, 92, 0.05);
+    }
+
+    .tabs button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(0, 43, 92, 0.12);
+    }
+
+    .tabs button.active {
+      background: linear-gradient(135deg, var(--azul), var(--verde));
+      color: #ffffff;
+      border-color: transparent;
+      box-shadow: 0 12px 25px rgba(0, 87, 184, 0.22);
+    }
+
+    .wrap {
+      padding: 22px;
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-2 {
+      grid-template-columns: 430px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 87, 184, 0.09);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 18px 45px rgba(0, 43, 92, 0.11);
+    }
+
+    .card h2 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 18px;
+      color: #12345a;
+      font-size: 21px;
+      letter-spacing: -0.02em;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #edf1f7;
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      color: var(--azul-escuro);
+      font-size: 17px;
+    }
+
+    #orcamento .form-card h2::before {
+      content: "🧾";
+    }
+
+    #clientes .card h2::before {
+      content: "👤";
+    }
+
+    #produtos .card h2::before {
+      content: "📦";
+    }
+
+    #lista .card h2::before {
+      content: "📁";
+    }
+
+    #empresa .card h2::before {
+      content: "⚙️";
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #334155;
+      font-size: 12.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.035em;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid #dbe7f4;
+      border-radius: 14px;
+      padding: 11px 12px;
+      font-size: 15px;
+      outline: none;
+      background: #ffffff;
+      color: #172033;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: #94a3b8;
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    input:hover,
+    select:hover,
+    textarea:hover {
+      background: #ffffff;
+      border-color: #bdd2ea;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      background: #ffffff;
+      border-color: var(--azul);
+      box-shadow: 0 0 0 4px rgba(0, 87, 184, 0.10);
+    }
+
+    .field {
+      margin-bottom: 14px;
+      position: relative;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      background: transparent;
+    }
+
+    .btn {
+      min-height: 40px;
+      min-width: 132px;
+      padding: 10px 15px;
+      border-radius: 13px;
+      font-size: 13.5px;
+      letter-spacing: 0.01em;
+      box-shadow: 0 7px 16px rgba(0, 43, 92, 0.09);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(0.99);
+      box-shadow: 0 11px 22px rgba(0, 43, 92, 0.13);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: 0 5px 12px rgba(0, 43, 92, 0.10);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #005fd0, #003b7a);
+      color: #ffffff;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #00b965, #007a41);
+      color: #ffffff;
+    }
+
+    .btn-light {
+      background: #ffffff;
+      border: 1px solid #d8e7f7;
+      color: #003b7a;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      color: #ffffff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #dfeaf6;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(0, 43, 92, 0.05);
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #edf1f7;
+      text-align: left;
+      font-size: 14px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eff7ff;
+      color: #12345a;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    tr:nth-child(even) td {
+      background: #fbfdff;
+    }
+
+    tr:hover td {
+      background: #fbfdff;
+    }
+
+    .money {
+      color: var(--azul-escuro);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #eef6ff;
+      border: 1px solid #d9e9fb;
+      color: var(--azul-escuro);
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .form-card {
+      position: sticky;
+      top: 86px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.96));
+      border-top: 4px solid var(--azul);
+    }
+
+    .form-section-box {
+      position: relative;
+      z-index: 1;
+      overflow: visible !important;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid #e0ebf7;
+      border-radius: 20px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 8px 22px rgba(0, 43, 92, 0.055);
+    }
+
+    .form-section-title {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      color: #12345a;
+      font-weight: 900;
+      font-size: 15px;
+      margin-bottom: 15px;
+    }
+
+    .form-section-title .section-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      font-size: 15px;
+      background: linear-gradient(135deg, #eef6ff, #eafff4);
+      border: 1px solid #dceafa;
+      color: var(--azul-escuro);
+    }
+
+    .form-section-title div {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .form-section-title strong {
+      color: #12345a;
+      font-size: 15.5px;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+    }
+
+    .form-section-title small {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.25;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .field-modern {
+      background: #f8fbff;
+      border: 1px solid #edf3fa;
+      border-radius: 16px;
+      padding: 9px;
+      margin-bottom: 12px;
+      overflow: visible !important;
+    }
+
+    .field-modern label {
+      margin-bottom: 7px;
+      color: #48627f;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.045em;
+    }
+
+    .field-modern input,
+    .field-modern select,
+    .field-modern textarea {
+      background: #ffffff;
+      border-radius: 13px;
+      border-color: #d9e5f2;
+      min-height: 43px;
+    }
+
+    .field-modern textarea {
+      min-height: 92px;
+    }
+
+    .add-item-panel {
+      background: linear-gradient(135deg, rgba(238, 246, 255, 0.92), rgba(234, 255, 244, 0.92));
+      border-color: #cfe6f8;
+    }
+
+    .manual-btn {
+      width: auto;
+      min-width: 190px;
+      min-height: 38px;
+      margin-top: 10px;
+      padding: 9px 13px;
+      border-radius: 13px;
+      border-style: dashed;
+      font-size: 13px;
+      color: #335b83;
+      background: #f8fbff;
+      border: 1px dashed #bcd3eb;
+      box-shadow: none;
+    }
+
+    .manual-btn:hover {
+      background: #eef6ff;
+      border-color: #8fb9e8;
+    }
+
+    .form-final-actions {
+      background: #ffffff;
+      border: 1px solid #e0ebf7;
+      border-radius: 16px;
+      padding: 10px;
+      gap: 9px;
+      box-shadow: 0 10px 24px rgba(0, 43, 92, 0.07);
+      position: sticky;
+      bottom: 12px;
+      z-index: 5;
+    }
+
+    .form-final-actions .btn {
+      flex: 1;
+      min-height: 42px;
+      font-size: 14px;
+    }
+
+    .preview-bar {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff, #f7fbff);
+      border: 1px solid #dbe8f7;
+      border-radius: 18px;
+      padding: 12px;
+      box-shadow: 0 10px 24px rgba(0, 43, 92, 0.08);
+    }
+
+    .preview-bar h2 {
+      border: 0;
+      padding: 0;
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .preview-bar .actions .btn {
+      min-width: 118px;
+    }
+
+    #previewOrcamento {
+      background: #ffffff;
+      min-height: 900px;
+      border-radius: 18px;
+      padding: 30px;
+      border: 1px solid #dbe8f7;
+      box-shadow: 0 14px 32px rgba(0, 43, 92, 0.10);
+      position: relative;
+      overflow: hidden;
+    }
+        #previewOrcamento.com-timbrado {
+      background-size: cover;
+      background-position: center top;
+      background-repeat: no-repeat;
+    }
+
+    #previewOrcamento.com-timbrado::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.10);
+      pointer-events: none;
+    }
+
+    #previewOrcamento > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .orc-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      border-bottom: 4px solid transparent;
+      border-image: linear-gradient(90deg, var(--azul), var(--verde)) 1;
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+    }
+
+    .company {
+      display: flex;
+      gap: 12px;
+    }
+
+    .logo-box {
+      width: 72px;
+      height: 72px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--azul), var(--verde));
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 900;
+      flex: 0 0 auto;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 8px 18px rgba(0, 43, 92, 0.10);
+    }
+
+    .logo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #ffffff;
+      padding: 4px;
+    }
+
+    .company h2 {
+      margin: 0;
+      color: #12345a;
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .company p,
+    .orc-info p {
+      margin: 3px 0;
+      font-size: 12px;
+      color: #4b5563;
+    }
+
+    .orc-info {
+      text-align: right;
+    }
+
+    .orc-info h1 {
+      margin: 0 0 8px;
+      color: #12345a;
+      letter-spacing: -0.03em;
+    }
+
+    .box-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .box {
+      border: 1px solid #dfeaf6;
+      border-radius: 13px;
+      padding: 12px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 252, 255, 0.96));
+      box-shadow: 0 8px 20px rgba(0, 43, 92, 0.06);
+    }
+
+    .box h3 {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0 0 8px;
+      color: #12345a;
+      font-size: 15px;
+    }
+
+    .box h3::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--verde);
+      display: inline-block;
+    }
+
+    .box p {
+      margin: 3px 0;
+      font-size: 13px;
+    }
+
+    .totals {
+      margin-top: 14px;
+      background: linear-gradient(135deg, #f1f8ff, #eafff4);
+      border: 1px solid #caead8;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 10px 24px rgba(0, 43, 92, 0.08);
+    }
+
+    .total-line {
+      display: flex;
+      justify-content: space-between;
+      margin: 7px 0;
+    }
+
+    .total-line.final {
+      font-size: 22px;
+      font-weight: 900;
+      color: #003b7a;
+      border-top: 1px solid rgba(0, 87, 184, 0.18);
+      padding-top: 10px;
+      letter-spacing: -0.02em;
+    }
+
+    .aprovacao-box {
+      margin-top: 16px;
+      border: 1px solid #bceccc;
+      background: linear-gradient(135deg, #e9fff4, #f8fffb);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 22px rgba(0, 168, 89, 0.10);
+    }
+
+    .aprovacao-box h3 {
+      margin: 0 0 8px;
+      color: #006b3a;
+      font-size: 16px;
+    }
+
+    .aprovacao-box p {
+      margin: 4px 0;
+      font-size: 13px;
+    }
+
+    .whatsapp-aprovar {
+      min-height: 40px;
+      display: inline-flex !important;
+      margin-top: 10px;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #08bd68, #007a41);
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 900;
+      font-size: 13px;
+      text-align: center !important;
+      box-shadow: 0 12px 24px rgba(0, 168, 89, 0.24);
+    }
+
+    .whatsapp-aprovar:hover {
+      background: var(--verde-escuro);
+    }
+
+    .preview-footer {
+      border-top: 1px solid #e5e7eb;
+      margin-top: 18px;
+      padding-top: 12px;
+      font-size: 12px;
+      color: #4b5563;
+    }
+
+    .empty-box {
+      padding: 18px;
+      text-align: center;
+      color: #64748b;
+      border: 1px dashed var(--borda);
+      border-radius: 16px;
+      background: linear-gradient(135deg, #ffffff, #f8fbff);
+    }
+
+    .select-real-escondido {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      height: 0;
+      min-height: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .cliente-picker-wrap,
+    .produto-picker-wrap,
+    .unidade-picker-wrap,
+    .status-picker-wrap {
+      position: relative;
+      overflow: visible !important;
+      z-index: 10000 !important;
+    }
+
+    .cliente-picker-btn,
+    .produto-picker-btn,
+    .unidade-picker-btn,
+    .status-picker-btn {
+      width: 100%;
+      min-height: 44px;
+      height: 44px;
+      border: 1px solid #d9e5f2;
+      border-radius: 13px;
+      background: #ffffff;
+      color: #12345a;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 43, 92, 0.04);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .cliente-picker-btn:hover,
+    .produto-picker-btn:hover,
+    .unidade-picker-btn:hover,
+    .status-picker-btn:hover,
+    .cliente-picker-btn:focus,
+    .produto-picker-btn:focus,
+    .unidade-picker-btn:focus,
+    .status-picker-btn:focus {
+      border-color: var(--azul);
+      box-shadow: 0 0 0 4px rgba(0, 87, 184, 0.10);
+      outline: none;
+    }
+
+    .cliente-picker-seta,
+    .produto-picker-seta,
+    .unidade-picker-seta,
+    .status-picker-seta {
+      width: 26px;
+      height: 26px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #f1f8ff, #eafff4);
+      border: 1px solid #dceafa;
+      color: #335b83;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      font-size: 14px;
+      font-weight: 900;
+      transform: translateY(1px);
+    }
+
+    .cliente-picker-lista,
+    .produto-picker-lista,
+    .unidade-picker-lista,
+    .status-picker-lista {
+      display: none;
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      top: calc(100% - 4px);
+      z-index: 99999 !important;
+      background: #ffffff;
+      border: 1px solid #dbe8f7;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 43, 92, 0.18);
+      padding: 8px;
+      max-height: 280px;
+      overflow: auto;
+    }
+
+    .unidade-picker-lista {
+      left: 0;
+      right: 0;
+      top: calc(100% + 6px);
+    }
+
+    .cliente-picker-lista.open,
+    .produto-picker-lista.open,
+    .unidade-picker-lista.open,
+    .status-picker-lista.open {
+      display: grid;
+      gap: 6px;
+      z-index: 99999 !important;
+    }
+
+    .cliente-picker-opcao,
+    .unidade-picker-opcao,
+    .status-picker-opcao {
+      border: 0;
+      width: 100%;
+      text-align: left;
+      background: #ffffff;
+      border-radius: 13px;
+      padding: 10px 11px;
+      cursor: pointer;
+      color: #172033;
+      transition: background 0.18s ease, transform 0.18s ease;
+    }
+
+    .cliente-picker-opcao {
+      display: grid;
+      gap: 3px;
+    }
+
+    .unidade-picker-opcao {
+      display: grid;
+      gap: 3px;
+    }
+
+    .status-picker-opcao {
+      display: grid;
+      grid-template-columns: 12px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .cliente-picker-opcao:hover,
+    .unidade-picker-opcao:hover,
+    .unidade-picker-opcao.active,
+    .status-picker-opcao:hover,
+    .status-picker-opcao.active {
+      background: linear-gradient(135deg, #eef6ff, #eafff4);
+      transform: translateX(2px);
+    }
+
+    .cliente-picker-opcao strong,
+    .unidade-picker-opcao strong,
+    .status-picker-opcao strong {
+      display: block;
+      color: #12345a;
+      font-size: 13.5px;
+      font-weight: 900;
+    }
+
+    .cliente-picker-opcao span,
+    .unidade-picker-opcao span,
+    .status-picker-opcao small,
+    .cliente-picker-vazio,
+    .produto-picker-vazio {
+      display: block;
+      color: #64748b;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+
+    #statusPickerTexto {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      flex: 0 0 auto;
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .status-dot.aberto {
+      background: #0057b8;
+    }
+
+    .status-dot.aprovado {
+      background: #00a859;
+    }
+
+    .status-dot.recusado {
+      background: #dc2626;
+    }
+
+    .status-dot.cancelado {
+      background: #64748b;
+    }
+
+    .produto-opcao-simples {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) 38px !important;
+      gap: 10px !important;
+      align-items: center !important;
+      padding: 10px 11px !important;
+      border-radius: 16px !important;
+      background: #ffffff !important;
+      border: 1px solid #e2edf8 !important;
+      transition: background 0.18s ease;
+    }
+
+    .produto-opcao-simples:hover {
+      background: linear-gradient(135deg, #f8fbff, #f3fff8) !important;
+    }
+
+    .produto-opcao-info {
+      border: 0;
+      width: 100%;
+      min-width: 0;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+      display: grid;
+      gap: 4px;
+      padding: 2px 4px;
+      border-radius: 11px;
+    }
+
+    .produto-opcao-info:hover {
+      background: #f6fbff;
+    }
+
+    .produto-opcao-info strong {
+      color: #12345a;
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .produto-opcao-info span {
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    .produto-add-lateral {
+      width: 34px !important;
+      height: 34px !important;
+      min-width: 34px !important;
+      min-height: 34px !important;
+      border-radius: 50% !important;
+      padding: 0 !important;
+      font-size: 22px !important;
+      line-height: 1 !important;
+      font-weight: 900 !important;
+      background: linear-gradient(135deg, #00b965, #007a41) !important;
+      color: #ffffff !important;
+      border: 2px solid #ffffff !important;
+      box-shadow:
+        0 8px 18px rgba(0, 168, 89, 0.24),
+        0 0 0 1px rgba(0, 168, 89, 0.16) !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex: 0 0 34px !important;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+
+    .produto-add-lateral:hover {
+      transform: translateY(-1px) scale(1.03);
+      box-shadow:
+        0 11px 22px rgba(0, 168, 89, 0.30),
+        0 0 0 1px rgba(0, 168, 89, 0.18) !important;
+      filter: brightness(0.98);
+    }
+
+    .produto-add-lateral:active {
+      transform: translateY(0) scale(0.98);
+      box-shadow:
+        0 6px 14px rgba(0, 168, 89, 0.22),
+        0 0 0 1px rgba(0, 168, 89, 0.16) !important;
+    }
+
+    .orc-item-modern {
+      background: #ffffff;
+      border: 1px solid #dce8f5;
+      border-radius: 18px;
+      padding: 13px;
+      margin-bottom: 12px;
+      box-shadow: 0 10px 24px rgba(0, 43, 92, 0.07);
+      overflow: hidden;
+    }
+
+    .orc-item-modern-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 11px;
+      margin-bottom: 11px;
+      border-bottom: 1px solid #edf3fa;
+    }
+
+    .orc-item-modern-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .orc-item-modern-badge {
+      min-width: 34px;
+      height: 28px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #eef6ff;
+      border: 1px solid #dceafa;
+      color: #335b83;
+      font-size: 12px;
+      font-weight: 900;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+
+    .orc-item-modern-title {
+      color: #12345a;
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .orc-item-modern-unit {
+      margin-top: 3px;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .orc-item-modern-remove {
+      border: 1px solid #fecaca;
+      background: #fff5f5;
+      color: #b91c1c;
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    }
+
+    .orc-item-modern-remove:hover {
+      background: #dc2626;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+        .orc-item-modern-grid {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 9px;
+      align-items: stretch;
+    }
+
+    .orc-item-modern-field {
+      min-width: 0;
+      overflow: hidden;
+      background: #f8fbff;
+      border: 1px solid #e4edf7;
+      border-radius: 14px;
+      padding: 9px;
+    }
+
+    .orc-item-modern-field.total-item {
+      grid-column: 1 / -1;
+    }
+
+    .orc-item-modern-field label {
+      display: block;
+      margin-bottom: 6px;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+      white-space: normal;
+      line-height: 1.15;
+    }
+
+    .orc-item-modern-field input,
+    .orc-item-modern-total {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .orc-item-modern-field input {
+      height: 40px;
+      border: 1px solid #d9e5f2;
+      border-radius: 12px;
+      background: #ffffff;
+      color: #12345a;
+      font-size: 14.5px;
+      font-weight: 900;
+      padding: 7px 8px;
+      box-shadow: none;
+    }
+
+    .orc-item-modern-field.quantidade input {
+      text-align: center;
+      font-size: 17px;
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+
+    .orc-item-modern-field.valor-unitario input {
+      text-align: right;
+    }
+
+    .orc-item-modern-total {
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid #c6efd6;
+      background: linear-gradient(135deg, #e8fff4, #f7fffb);
+      color: #006b3a;
+      font-size: 15px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .orc-item-modern-total::before {
+      content: "Total do item";
+      color: #007a41;
+      font-size: 12px;
+      font-weight: 800;
+      margin-right: 10px;
+    }
+
+    #empresa .card {
+      max-width: 980px;
+      min-height: 180px;
+      margin: 0 auto;
+      border-top: 4px solid var(--verde);
+    }
+
+    #empresa input[type="file"] {
+      padding: 12px;
+      background: #f8fbff;
+    }
+
+    #empresa .field p.muted {
+      margin: 7px 0 0;
+      padding: 9px 11px;
+      background: #f8fbff;
+      border: 1px solid #edf1f7;
+      border-radius: 12px;
+    }
+
+    #clientes .card,
+    #produtos .card,
+    #lista .card {
+      min-height: 180px;
+    }
+
+    @media (max-width: 1000px) {
+      .grid-2,
+      .row,
+      .box-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-card {
+        position: static;
+      }
+
+      .orc-head {
+        flex-direction: column;
+      }
+
+      .orc-info {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 700px) {
+      header {
+        padding: 18px 16px;
+      }
+
+      header h1 {
+        font-size: 20px;
+      }
+
+      .tabs {
+        justify-content: stretch;
+        padding: 10px;
+        gap: 7px;
+      }
+
+      .tabs button {
+        flex: 1 1 calc(50% - 8px);
+        min-width: 0;
+        min-height: 46px;
+        padding: 10px 11px;
+        font-size: 13px;
+        white-space: normal;
+      }
+
+      .wrap {
+        padding: 12px;
+      }
+
+      .card {
+        border-radius: 18px;
+        padding: 16px;
+      }
+
+      .form-section-box {
+        padding: 12px;
+        border-radius: 18px;
+      }
+
+      .form-final-actions {
+        position: static;
+      }
+
+      .form-final-actions .btn,
+      .actions .btn,
+      .preview-bar .actions .btn {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .preview-bar .actions {
+        width: 100%;
+      }
+
+      .preview-bar .btn {
+        flex: 1 1 100%;
+      }
+
+      .card h2 {
+        font-size: 19px;
+      }
+
+      .form-section-title .section-icon {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+      }
+
+      .form-section-title strong {
+        font-size: 15px;
+      }
+
+      .form-section-title small {
+        font-size: 11.5px;
+      }
+
+      .orc-item-modern-header {
+        flex-direction: column;
+      }
+
+      .orc-item-modern-remove {
+        width: 100%;
+      }
+
+      .orc-item-modern-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .orc-item-modern-field.total-item {
+        grid-column: auto;
+      }
+
+      .orc-item-modern-field input,
+      .orc-item-modern-total {
+        font-size: 16px;
+      }
+
+      table.responsive,
+      table.responsive thead,
+      table.responsive tbody,
+      table.responsive tr,
+      table.responsive th,
+      table.responsive td {
+        display: block;
+      }
+
+      table.responsive thead {
+        display: none;
+      }
+
+      table.responsive tr {
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        margin-bottom: 10px;
+        overflow: hidden;
+      }
+
+      table.responsive td {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      table.responsive td::before {
+        content: attr(data-label);
+        font-weight: 900;
+        color: var(--azul-escuro);
+      }
+
+      #previewOrcamento {
+        padding: 18px;
+      }
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+
+      header,
+      .tabs,
+      .no-print,
+      .form-card {
+        display: none !important;
+      }
+
+      html,
+      body {
+        background: #ffffff;
+      }
+
+      .wrap {
+        padding: 0;
+        max-width: none;
+      }
+
+      .grid-2 {
+        display: block;
+      }
+
+      .card {
+        box-shadow: none;
+        border: 0;
+        padding: 0;
+      }
+
+      #previewOrcamento {
+        border: 0;
+        border-radius: 0;
+        min-height: auto;
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        box-shadow: none;
+      }
+
+      .orc-head {
+        padding-bottom: 12px;
+        margin-bottom: 14px;
+      }
+
+      .company h2 {
+        font-size: 18px;
+      }
+
+      .company p,
+      .orc-info p {
+        font-size: 11px;
+      }
+
+      .orc-info h1 {
+        font-size: 25px;
+      }
+
+      .logo-box {
+        width: 60px;
+        height: 60px;
+      }
+
+      .box-grid {
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .box {
+        padding: 10px;
+      }
+
+      .box h3 {
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+
+      .box p {
+        font-size: 12px;
+      }
+
+      #previewOrcamento table th,
+      #previewOrcamento table td {
+        padding: 7px 8px;
+        font-size: 12px;
+      }
+
+      .totals {
+        padding: 10px;
+        margin-top: 10px;
+      }
+
+      .total-line {
+        font-size: 13px;
+        margin: 5px 0;
+      }
+
+      .total-line.final {
+        font-size: 19px;
+        padding-top: 8px;
+      }
+
+      .aprovacao-box {
+        padding: 10px;
+        margin-top: 10px;
+      }
+
+      .aprovacao-box h3 {
+        font-size: 14px;
+        margin-bottom: 5px;
+      }
+
+      .aprovacao-box p {
+        font-size: 12px;
+      }
+
+      .whatsapp-aprovar {
+        display: inline-flex;
+        font-size: 12px;
+        padding: 8px 10px;
+      }
+
+      .preview-footer {
+        font-size: 10px;
+        margin-top: 10px;
+        padding-top: 8px;
+      }
+    }
+    /* CORREÇÃO DEFINITIVA DAS LISTAS FICANDO ATRÁS */
+
+.form-card,
+.card,
+.form-section-box,
+.field,
+.field-modern,
+.cliente-picker-wrap,
+.produto-picker-wrap,
+.unidade-picker-wrap,
+.status-picker-wrap {
+  overflow: visible !important;
+}
+
+/* Garante que o bloco que tem lista aberta fique acima dos outros */
+.form-section-box {
+  position: relative;
+  z-index: 1;
+}
+
+.form-section-box:has(.cliente-picker-lista.open),
+.form-section-box:has(.produto-picker-lista.open),
+.form-section-box:has(.unidade-picker-lista.open),
+.form-section-box:has(.status-picker-lista.open) {
+  z-index: 999999 !important;
+}
+
+/* Camada dos campos modernos */
+.cliente-picker-wrap,
+.produto-picker-wrap,
+.unidade-picker-wrap,
+.status-picker-wrap {
+  position: relative !important;
+  z-index: 999999 !important;
+}
+
+/* Camada das listas abertas */
+.cliente-picker-lista,
+.produto-picker-lista,
+.unidade-picker-lista,
+.status-picker-lista {
+  z-index: 9999999 !important;
+}
+
+/* Quando abrir, força aparecer por cima */
+.cliente-picker-lista.open,
+.produto-picker-lista.open,
+.unidade-picker-lista.open,
+.status-picker-lista.open {
+  position: absolute !important;
+  z-index: 9999999 !important;
+}
+    /* QUANTIDADE DO ITEM - DIGITAÇÃO LIVRE E SEM BUG */
+
+.input-qtd-item {
+  width: 100% !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  border-radius: 12px !important;
+  text-align: center !important;
+  font-size: 17px !important;
+  font-weight: 900 !important;
+  color: #12345a !important;
+  background: #ffffff !important;
+  border: 1px solid #d9e5f2 !important;
+  padding: 7px 8px !important;
+  box-shadow: none !important;
+}
+
+.input-qtd-item:focus {
+  border-color: var(--azul) !important;
+  box-shadow: 0 0 0 4px rgba(0, 87, 184, 0.10) !important;
+}
+
+.orc-item-modern-grid {
+  grid-template-columns: 120px minmax(0, 1fr) !important;
+}
+
+@media (max-width: 700px) {
+  .orc-item-modern-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+  </style>
+</head>
+
+<body>
+  <header>
+    <div>
+      <h1>ViaTec | Sistema de Orçamentos</h1>
+      <small>Cadastre, monte e visualize o orçamento na mesma tela.</small>
+    </div>
+
+    <strong id="dataHoje"></strong>
+  </header>
+
+  <div class="tabs no-print">
+    <button class="active" onclick="abrirAba('orcamento', this)">🧾 Fazer orçamento</button>
+    <button onclick="abrirAba('clientes', this)">👤 Clientes</button>
+    <button onclick="abrirAba('produtos', this)">📦 Produtos/Serviços</button>
+    <button onclick="abrirAba('lista', this)">📁 Orçamentos salvos</button>
+    <button onclick="abrirAba('empresa', this)">⚙️ Empresa</button>
+  </div>
+
+  <main class="wrap">
+    <section id="orcamento" class="section active">
+      <div class="grid grid-2">
+        <div class="card form-card">
+          <h2>Montar orçamento</h2>
+
+          <div class="form-section-box">
+            <div class="form-section-title">
+              <span class="section-icon">👤</span>
+              <div>
+                <strong>Dados do cliente</strong>
+                <small>Escolha o cliente, data e validade</small>
+              </div>
+            </div>
+
+            <div class="field field-modern cliente-picker-wrap">
+              <label>Cliente</label>
+
+              <select id="orcCliente" onchange="atualizarPreview()" class="select-real-escondido"></select>
+
+              <button class="cliente-picker-btn" type="button" onclick="toggleClientePicker()">
+                <span id="clientePickerTexto">Selecione o cliente</span>
+                <span class="cliente-picker-seta">▾</span>
+              </button>
+
+              <div class="cliente-picker-lista" id="clientePickerLista"></div>
+            </div>
+
+            <div class="row">
+              <div class="field field-modern">
+                <label>Data</label>
+                <input id="orcData" type="date" onchange="atualizarPreview()" />
+              </div>
+
+              <div class="field field-modern">
+                <label>Validade</label>
+                <input id="orcValidade" type="date" onchange="atualizarPreview()" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="field field-modern status-picker-wrap">
+                <label>Status</label>
+
+                <select id="orcStatus" onchange="atualizarPreview()" class="select-real-escondido">
+                  <option value="aberto">Aberto</option>
+                  <option value="aprovado">Aprovado</option>
+                  <option value="recusado">Recusado</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
+
+                <button class="status-picker-btn" type="button" onclick="toggleStatusPicker()">
+                  <span id="statusPickerTexto">Aberto</span>
+                  <span class="status-picker-seta">▾</span>
+                </button>
+
+                <div class="status-picker-lista" id="statusPickerLista"></div>
+              </div>
+
+              <div class="field field-modern">
+                <label>Desconto R$</label>
+                <input
+                  id="orcDesconto"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value="0"
+                  oninput="atualizarPreview()"
+                  placeholder="0,00"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section-box add-item-panel">
+            <div class="form-section-title">
+              <span class="section-icon">＋</span>
+              <div>
+                <strong>Adicionar produtos</strong>
+                <small>Abra a lista e adicione os itens</small>
+              </div>
+            </div>
+
+            <div class="produto-add-list-only">
+              <div class="produto-picker-wrap produto-picker-line">
+                <label>Produto/Serviço</label>
+
+                <select id="produtoSelecionado" class="select-real-escondido"></select>
+                <input id="itemQtd" type="hidden" value="1" />
+
+                <button class="produto-picker-btn" type="button" onclick="toggleProdutoPicker()">
+                  <span id="produtoPickerTexto">Selecione o produto/serviço</span>
+                  <span class="produto-picker-seta">▾</span>
+                </button>
+
+                <div class="produto-picker-lista" id="produtoPickerLista"></div>
+              </div>
+            </div>
+
+            <button class="btn btn-light manual-btn" type="button" onclick="adicionarManual()">
+              + Adicionar item manual
+            </button>
+          </div>
+
+          <div class="form-section-box">
+            <div class="form-section-title">
+              <span class="section-icon">🧾</span>
+              <div>
+                <strong>Itens do orçamento</strong>
+                <small>Edite quantidade, valor e subtotal</small>
+              </div>
+            </div>
+
+            <div id="itensTela"></div>
+          </div>
+
+          <div class="form-section-box">
+            <div class="form-section-title">
+              <span class="section-icon">💳</span>
+              <div>
+                <strong>Pagamento e observações</strong>
+                <small>Informe condições e detalhes finais</small>
+              </div>
+            </div>
+
+            <div class="field field-modern">
+              <label>Descrição de pagamento</label>
+              <textarea
+                id="orcPagamento"
+                placeholder="Ex: 50% de entrada via Pix e restante na conclusão."
+                oninput="atualizarPreview()"
+              ></textarea>
+            </div>
+
+            <div class="field field-modern">
+              <label>Observações</label>
+              <textarea
+                id="orcObs"
+                oninput="atualizarPreview()"
+                placeholder="Observações do orçamento..."
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="actions form-final-actions">
+            <button class="btn btn-primary" type="button" onclick="salvarOrcamento()">
+              Salvar orçamento
+            </button>
+
+            <button class="btn btn-light" type="button" onclick="limparOrcamento()">
+              Novo/Limpar
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="preview-bar no-print">
+            <h2 style="margin:0;">Pré-visualização</h2>
+
+            <div class="actions" style="margin:0;">
+              <button class="btn btn-light" type="button" onclick="window.print()">Imprimir</button>
+              <button class="btn btn-success" type="button" onclick="baixarPDF()">Baixar PDF</button>
+              <button class="btn btn-success" type="button" onclick="enviarWhatsApp()">WhatsApp</button>
+            </div>
+          </div>
+
+          <div id="previewOrcamento"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="clientes" class="section">
+      <div class="grid grid-2">
+        <div class="card">
+          <h2>Cliente</h2>
+
+          <input type="hidden" id="clienteId" />
+
+          <div class="field">
+            <label>Nome / Empresa</label>
+            <input id="clienteNome" />
+          </div>
+
+          <div class="field">
+            <label>CPF/CNPJ</label>
+            <input id="clienteDoc" placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+          </div>
+
+          <div class="field">
+            <label>Telefone / WhatsApp</label>
+            <input id="clienteFone" placeholder="5599999999999" />
+          </div>
+
+          <div class="field">
+            <label>E-mail</label>
+            <input id="clienteEmail" type="email" />
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label>Endereço</label>
+              <input id="clienteEndereco" placeholder="Rua / Avenida" />
+            </div>
+
+            <div class="field">
+              <label>Número</label>
+              <input id="clienteNumero" placeholder="Nº" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" type="button" onclick="salvarCliente()">
+              Salvar cliente
+            </button>
+
+            <button class="btn btn-light" type="button" onclick="limparCliente()">
+              Limpar
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Clientes cadastrados</h2>
+          <div id="listaClientes"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="produtos" class="section">
+      <div class="grid grid-2">
+        <div class="card">
+                    <h2>Produto/Serviço</h2>
+
+          <input type="hidden" id="produtoId" />
+
+          <div class="field">
+            <label>Descrição</label>
+            <input id="produtoDesc" />
+          </div>
+
+          <div class="row">
+            <div class="field unidade-picker-wrap">
+              <label>Unidade</label>
+
+              <select id="produtoUn" class="select-real-escondido">
+                <option value="un">un</option>
+                <option value="serviço">serviço</option>
+                <option value="hora">hora</option>
+                <option value="metro">metro</option>
+                <option value="mês">mês</option>
+              </select>
+
+              <button class="unidade-picker-btn" type="button" onclick="toggleUnidadePicker()">
+                <span id="unidadePickerTexto">Unidade</span>
+                <span class="unidade-picker-seta">▾</span>
+              </button>
+
+              <div class="unidade-picker-lista" id="unidadePickerLista"></div>
+            </div>
+
+            <div class="field">
+              <label>Valor unitário</label>
+              <input id="produtoValor" type="number" step="0.01" min="0" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" type="button" onclick="salvarProduto()">
+              Salvar produto/serviço
+            </button>
+
+            <button class="btn btn-light" type="button" onclick="limparProduto()">
+              Limpar
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Produtos/Serviços cadastrados</h2>
+          <div id="listaProdutos"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="lista" class="section">
+      <div class="card">
+        <h2>Orçamentos salvos</h2>
+        <div id="listaOrcamentos"></div>
+      </div>
+    </section>
+
+    <section id="empresa" class="section">
+      <div class="card">
+        <h2>Dados da empresa</h2>
+
+        <div class="row">
+          <div class="field">
+            <label>Razão Social</label>
+            <input id="empNome" />
+          </div>
+
+          <div class="field">
+            <label>CNPJ</label>
+            <input id="empCnpj" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Fone</label>
+            <input id="empFone" />
+          </div>
+
+          <div class="field">
+            <label>E-mail</label>
+            <input id="empEmail" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Endereço completo</label>
+          <input id="empEndereco" />
+        </div>
+
+        <div class="field">
+          <label>Mensagem padrão</label>
+          <textarea id="empMsg"></textarea>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Nome de quem orçou</label>
+            <input id="empResponsavel" placeholder="Ex: Guilherme de Andrade" />
+          </div>
+
+          <div class="field">
+            <label>Cargo/Função</label>
+            <input id="empCargo" placeholder="Ex: Operador de redes / Vendedor externo" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>WhatsApp para aprovação</label>
+          <input
+            id="empWhatsapp"
+            placeholder="Ex: 5599999999999"
+            oninput="this.value = formatarTelefoneDigitando(this.value)"
+          />
+        </div>
+
+        <div class="field">
+          <label>Logo da ViaTec</label>
+          <input id="empLogo" type="file" accept="image/*" onchange="carregarLogo(event)" />
+          <p class="muted">Opcional. A logo aparecerá no topo do orçamento.</p>
+        </div>
+
+        <div class="field">
+          <label>Folha timbrada de fundo</label>
+          <input id="empTimbrado" type="file" accept="image/*" onchange="carregarTimbrado(event)" />
+          <p class="muted">Opcional. Use PNG/JPG em A4 vertical.</p>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" type="button" onclick="salvarEmpresa()">
+            Salvar dados da empresa
+          </button>
+
+          <button class="btn btn-light" type="button" onclick="removerLogo()">
+            Remover logo
+          </button>
+
+          <button class="btn btn-light" type="button" onclick="removerTimbrado()">
+            Remover timbrado
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const dinheiro = new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL"
+    });
+
+    let clientes = [];
+    let produtos = [];
+    let orcamentos = [];
+    let itensOrcamento = [];
+    let orcamentoEditandoId = null;
+
+    let empresa = {
+      nome: "VIATEC TELECOMUNICAÇÕES LTDA",
+      cnpj: "10.356.869/0001-27",
+      fone: "55-3528-1032",
+      email: "",
+      endereco: "AV BENTO GONÇALVES, 890 - CENTRO, CAMPO NOVO - RS, CEP 98570-000",
+      mensagem: "Obrigado por solicitar um orçamento com a ViaTec. Ficamos à disposição para qualquer dúvida.",
+      timbrado: "",
+      logo: "empLogo.png",
+      responsavel: "",
+      cargo: "",
+      whatsapp: "555535281032"
+    };
+
+    function uid() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+
+    function hojeISO() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function addDias(data, dias) {
+      const d = new Date(data + "T00:00:00");
+      d.setDate(d.getDate() + dias);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function dataBR(data) {
+      if (!data) return "";
+
+      const p = String(data).split("-");
+
+      return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : data;
+    }
+
+    function somenteNumeros(v) {
+      return String(v || "").replace(/\D/g, "");
+    }
+
+    function formatarDocumento(doc) {
+      const n = somenteNumeros(doc);
+
+      if (n.length === 11) {
+        return n.slice(0, 3) + "." + n.slice(3, 6) + "." + n.slice(6, 9) + "-" + n.slice(9, 11);
+      }
+
+      if (n.length === 14) {
+        return n.slice(0, 2) + "." + n.slice(2, 5) + "." + n.slice(5, 8) + "/" + n.slice(8, 12) + "-" + n.slice(12, 14);
+      }
+
+      return doc || "";
+    }
+
+    function formatarTelefone(fone) {
+      const n = somenteNumeros(fone);
+
+      if (n.length === 11) {
+        return "(" + n.slice(0, 2) + ") " + n.slice(2, 7) + "-" + n.slice(7, 11);
+      }
+
+      if (n.length === 10) {
+        return "(" + n.slice(0, 2) + ") " + n.slice(2, 6) + "-" + n.slice(6, 10);
+      }
+
+      if (n.length === 12 && n.slice(0, 2) === "55") {
+        return "(" + n.slice(2, 4) + ") " + n.slice(4, 8) + "-" + n.slice(8, 12);
+      }
+
+      if (n.length === 13 && n.slice(0, 2) === "55") {
+        return "(" + n.slice(2, 4) + ") " + n.slice(4, 9) + "-" + n.slice(9, 13);
+      }
+
+      return fone || "";
+    }
+
+    function formatarTelefoneDigitando(fone) {
+      const n = somenteNumeros(fone).slice(0, 13);
+
+      if (n.length <= 2) return n;
+      if (n.length <= 6) return "(" + n.slice(0, 2) + ") " + n.slice(2);
+      if (n.length <= 10) return "(" + n.slice(0, 2) + ") " + n.slice(2, 6) + "-" + n.slice(6);
+      if (n.length === 11) return "(" + n.slice(0, 2) + ") " + n.slice(2, 7) + "-" + n.slice(7);
+
+      if (n.length === 12 && n.slice(0, 2) === "55") {
+        return "(" + n.slice(2, 4) + ") " + n.slice(4, 8) + "-" + n.slice(8);
+      }
+
+      if (n.length === 13 && n.slice(0, 2) === "55") {
+        return "(" + n.slice(2, 4) + ") " + n.slice(4, 9) + "-" + n.slice(9);
+      }
+
+      return n;
+    }
+
+    function enderecoCompletoCliente(cliente) {
+      if (!cliente) return "";
+
+      return (cliente.endereco || "") + (cliente.numero ? ", Nº " + cliente.numero : "");
+    }
+
+    function salvarTudo() {
+      localStorage.setItem("vt_clientes", JSON.stringify(clientes));
+      localStorage.setItem("vt_produtos", JSON.stringify(produtos));
+      localStorage.setItem("vt_orcamentos", JSON.stringify(orcamentos));
+      localStorage.setItem("vt_empresa", JSON.stringify(empresa));
+    }
+
+    function carregarTudo() {
+      clientes = JSON.parse(localStorage.getItem("vt_clientes") || "[]");
+      produtos = JSON.parse(localStorage.getItem("vt_produtos") || "[]");
+      orcamentos = JSON.parse(localStorage.getItem("vt_orcamentos") || "[]");
+
+      const empSalva = JSON.parse(localStorage.getItem("vt_empresa") || "null");
+
+      if (empSalva) {
+        empresa = { ...empresa, ...empSalva };
+      }
+
+      if (!empresa.logo) empresa.logo = "empLogo.png";
+      if (!empresa.whatsapp) empresa.whatsapp = "555535281032";
+    }
+
+    function abrirAba(id, botao) {
+      document.querySelectorAll(".section").forEach((sec) => sec.classList.remove("active"));
+
+      $(id).classList.add("active");
+
+      document.querySelectorAll(".tabs button").forEach((btn) => btn.classList.remove("active"));
+
+      if (botao) {
+        botao.classList.add("active");
+      }
+
+      if (id === "orcamento") {
+        atualizarPreview();
+      }
+    }
+
+    function proximoNumero() {
+      return new Date().getFullYear() + "-" + String(orcamentos.length + 1).padStart(4, "0");
+    }
+
+    function clienteAtual() {
+      return clientes.find((c) => c.id === $("orcCliente").value) || null;
+    }
+
+    function totais() {
+      const subtotal = itensOrcamento.reduce((s, i) => s + Number(i.subtotal || 0), 0);
+      const desconto = Number($("orcDesconto").value || 0);
+      const total = Math.max(0, subtotal - desconto);
+
+      return {
+        subtotal,
+        desconto,
+        total
+      };
+    }
+        function renderSelects() {
+      $("orcCliente").innerHTML =
+        '<option value="">Selecione o cliente</option>' +
+        clientes.map((c) => `<option value="${c.id}">${c.nome}</option>`).join("");
+
+      $("produtoSelecionado").innerHTML =
+        '<option value="">Selecione o produto/serviço</option>' +
+        produtos.map((p) => `<option value="${p.id}">${p.descricao} — ${dinheiro.format(Number(p.valor || 0))}</option>`).join("");
+
+      renderClientePicker();
+      renderProdutoPicker();
+      renderUnidadePicker();
+      renderStatusPicker();
+    }
+
+    function renderStatusPicker() {
+      const lista = $("statusPickerLista");
+      const texto = $("statusPickerTexto");
+      const select = $("orcStatus");
+
+      if (!lista || !texto || !select) return;
+
+      const statusOpcoes = [
+        {
+          valor: "aberto",
+          titulo: "Aberto",
+          desc: "Orçamento em negociação",
+          classe: "aberto"
+        },
+        {
+          valor: "aprovado",
+          titulo: "Aprovado",
+          desc: "Cliente aprovou o orçamento",
+          classe: "aprovado"
+        },
+        {
+          valor: "recusado",
+          titulo: "Recusado",
+          desc: "Cliente não aprovou",
+          classe: "recusado"
+        },
+        {
+          valor: "cancelado",
+          titulo: "Cancelado",
+          desc: "Orçamento cancelado",
+          classe: "cancelado"
+        }
+      ];
+
+      const atual = statusOpcoes.find((s) => s.valor === select.value) || statusOpcoes[0];
+
+      texto.innerHTML = '<span class="status-dot ' + atual.classe + '"></span>' + atual.titulo;
+
+      lista.innerHTML = statusOpcoes
+        .map(
+          (s) => `
+            <button type="button" class="status-picker-opcao ${s.valor === select.value ? "active" : ""}" onclick="selecionarStatusPicker('${s.valor}')">
+              <span class="status-dot ${s.classe}"></span>
+              <span>
+                <strong>${s.titulo}</strong>
+                <small>${s.desc}</small>
+              </span>
+            </button>
+          `
+        )
+        .join("");
+    }
+
+    function toggleStatusPicker() {
+      const lista = $("statusPickerLista");
+
+      if (!lista) return;
+
+      lista.classList.toggle("open");
+    }
+
+    function selecionarStatusPicker(valor) {
+      const select = $("orcStatus");
+
+      if (!select) return;
+
+      select.value = valor;
+
+      const lista = $("statusPickerLista");
+
+      if (lista) {
+        lista.classList.remove("open");
+      }
+
+      renderStatusPicker();
+      atualizarPreview();
+    }
+
+    function renderUnidadePicker() {
+      const lista = $("unidadePickerLista");
+      const texto = $("unidadePickerTexto");
+      const select = $("produtoUn");
+
+      if (!lista || !texto || !select) return;
+
+      const unidades = [
+        {
+          valor: "un",
+          titulo: "Unidade",
+          desc: "Produto por unidade"
+        },
+        {
+          valor: "serviço",
+          titulo: "Serviço",
+          desc: "Serviço fechado"
+        },
+        {
+          valor: "hora",
+          titulo: "Hora",
+          desc: "Cobrança por hora"
+        },
+        {
+          valor: "metro",
+          titulo: "Metro",
+          desc: "Cobrança por metro"
+        },
+        {
+          valor: "mês",
+          titulo: "Mês",
+          desc: "Cobrança mensal"
+        }
+      ];
+
+      const atual = unidades.find((u) => u.valor === select.value) || unidades[0];
+
+      texto.textContent = atual.titulo;
+
+      lista.innerHTML = unidades
+        .map(
+          (u) => `
+            <button type="button" class="unidade-picker-opcao ${u.valor === select.value ? "active" : ""}" onclick="selecionarUnidadePicker('${u.valor}')">
+              <strong>${u.titulo}</strong>
+              <span>${u.desc}</span>
+            </button>
+          `
+        )
+        .join("");
+    }
+
+    function toggleUnidadePicker() {
+      const lista = $("unidadePickerLista");
+
+      if (!lista) return;
+
+      lista.classList.toggle("open");
+    }
+
+    function selecionarUnidadePicker(valor) {
+      const select = $("produtoUn");
+
+      if (!select) return;
+
+      select.value = valor;
+
+      const lista = $("unidadePickerLista");
+
+      if (lista) {
+        lista.classList.remove("open");
+      }
+
+      renderUnidadePicker();
+    }
+
+    function renderClientePicker() {
+      const lista = $("clientePickerLista");
+      const texto = $("clientePickerTexto");
+
+      if (!lista || !texto || !$("orcCliente")) return;
+
+      const selecionado = clientes.find((c) => c.id === $("orcCliente").value);
+
+      texto.textContent = selecionado ? selecionado.nome : "Selecione o cliente";
+
+      if (!clientes.length) {
+        lista.innerHTML = '<div class="cliente-picker-vazio">Nenhum cliente cadastrado</div>';
+        return;
+      }
+
+      lista.innerHTML = clientes
+        .map(
+          (c) => `
+            <button type="button" class="cliente-picker-opcao" onclick="selecionarClientePicker('${c.id}')">
+              <strong>${c.nome}</strong>
+              <span>${formatarDocumento(c.documento) || "Sem CPF/CNPJ cadastrado"}</span>
+            </button>
+          `
+        )
+        .join("");
+    }
+
+    function toggleClientePicker() {
+      const lista = $("clientePickerLista");
+
+      if (!lista) return;
+
+      lista.classList.toggle("open");
+    }
+
+    function selecionarClientePicker(id) {
+      $("orcCliente").value = id;
+
+      const lista = $("clientePickerLista");
+
+      if (lista) {
+        lista.classList.remove("open");
+      }
+
+      renderClientePicker();
+      atualizarPreview();
+    }
+
+    function renderProdutoPicker() {
+      const lista = $("produtoPickerLista");
+      const texto = $("produtoPickerTexto");
+      const select = $("produtoSelecionado");
+
+      if (!lista || !texto || !select) return;
+
+      const selecionado = produtos.find((p) => p.id === select.value);
+
+      texto.textContent = selecionado ? selecionado.descricao : "Selecione o produto/serviço";
+
+      if (!produtos.length) {
+        lista.innerHTML = '<div class="produto-picker-vazio">Nenhum produto/serviço cadastrado</div>';
+        return;
+      }
+
+      lista.innerHTML = produtos
+        .map(
+          (p) => `
+            <div class="produto-opcao-simples">
+              <button type="button" class="produto-opcao-info" onclick="selecionarProdutoPicker('${p.id}')">
+                <strong>${p.descricao}</strong>
+                <span>${p.unidade || "un"} • ${dinheiro.format(Number(p.valor || 0))}</span>
+              </button>
+
+              <button type="button" class="produto-add-lateral" onclick="adicionarProdutoDaLista('${p.id}')" title="Adicionar ao orçamento">
+                +
+              </button>
+            </div>
+          `
+        )
+        .join("");
+    }
+
+    function toggleProdutoPicker() {
+      const lista = $("produtoPickerLista");
+
+      if (!lista) return;
+
+      lista.classList.toggle("open");
+    }
+
+    function selecionarProdutoPicker(id) {
+      const select = $("produtoSelecionado");
+
+      if (!select) return;
+
+      select.value = id;
+      renderProdutoPicker();
+    }
+
+    function adicionarProdutoDaLista(id) {
+      const produto = produtos.find((p) => p.id === id);
+      const qtd = 1;
+
+      if (!produto) {
+        return alert("Produto não encontrado.");
+      }
+
+      itensOrcamento.push({
+        id: uid(),
+        descricao: produto.descricao,
+        unidade: produto.unidade,
+        quantidade: qtd,
+        valor: Number(produto.valor || 0),
+        subtotal: qtd * Number(produto.valor || 0)
+      });
+
+      renderItens();
+      atualizarPreview();
+      renderProdutoPicker();
+
+      const lista = $("produtoPickerLista");
+
+      if (lista) {
+        lista.classList.add("open");
+      }
+    }
+
+    document.addEventListener("click", function (event) {
+      const wrapCliente = document.querySelector(".cliente-picker-wrap");
+      const listaCliente = $("clientePickerLista");
+
+      if (wrapCliente && listaCliente && !wrapCliente.contains(event.target)) {
+        listaCliente.classList.remove("open");
+      }
+
+      const wrapProduto = document.querySelector(".produto-picker-wrap");
+      const listaProduto = $("produtoPickerLista");
+
+      if (wrapProduto && listaProduto && !wrapProduto.contains(event.target)) {
+        listaProduto.classList.remove("open");
+      }
+
+      const wrapUnidade = document.querySelector(".unidade-picker-wrap");
+      const listaUnidade = $("unidadePickerLista");
+
+      if (wrapUnidade && listaUnidade && !wrapUnidade.contains(event.target)) {
+        listaUnidade.classList.remove("open");
+      }
+
+      const wrapStatus = document.querySelector(".status-picker-wrap");
+      const listaStatus = $("statusPickerLista");
+
+      if (wrapStatus && listaStatus && !wrapStatus.contains(event.target)) {
+        listaStatus.classList.remove("open");
+      }
+    });
+
+    function salvarCliente() {
+      const nome = $("clienteNome").value.trim();
+
+      if (!nome) {
+        return alert("Informe o nome do cliente.");
+      }
+
+      const id = $("clienteId").value || uid();
+
+      const registro = {
+        id,
+        nome,
+        documento: $("clienteDoc").value.trim(),
+        telefone: $("clienteFone").value.trim(),
+        email: $("clienteEmail").value.trim(),
+        endereco: $("clienteEndereco").value.trim(),
+        numero: $("clienteNumero").value.trim()
+      };
+
+      const pos = clientes.findIndex((c) => c.id === id);
+
+      if (pos >= 0) {
+        clientes[pos] = registro;
+      } else {
+        clientes.unshift(registro);
+      }
+
+      salvarTudo();
+      limparCliente();
+      atualizarTela();
+
+      alert("Cliente salvo.");
+    }
+
+    function editarCliente(id) {
+      const c = clientes.find((x) => x.id === id);
+
+      if (!c) return;
+
+      $("clienteId").value = c.id;
+      $("clienteNome").value = c.nome || "";
+      $("clienteDoc").value = c.documento || "";
+      $("clienteFone").value = c.telefone || "";
+      $("clienteEmail").value = c.email || "";
+      $("clienteEndereco").value = c.endereco || "";
+      $("clienteNumero").value = c.numero || "";
+
+      abrirAba("clientes", document.querySelectorAll(".tabs button")[1]);
+    }
+
+    function excluirCliente(id) {
+      if (!confirm("Excluir cliente?")) return;
+
+      clientes = clientes.filter((c) => c.id !== id);
+
+      salvarTudo();
+      atualizarTela();
+    }
+
+    function limparCliente() {
+      $("clienteId").value = "";
+      $("clienteNome").value = "";
+      $("clienteDoc").value = "";
+      $("clienteFone").value = "";
+      $("clienteEmail").value = "";
+      $("clienteEndereco").value = "";
+      $("clienteNumero").value = "";
+    }
+        function renderClientes() {
+      if (!clientes.length) {
+        $("listaClientes").innerHTML = '<div class="empty-box">Nenhum cliente cadastrado.</div>';
+        return;
+      }
+
+      $("listaClientes").innerHTML = `
+        <table class="responsive">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Telefone</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${clientes
+              .map(
+                (c) => `
+                  <tr>
+                    <td data-label="Cliente">
+                      <strong>${c.nome}</strong><br>
+                      <span class="muted">${formatarDocumento(c.documento)}</span>
+                    </td>
+                    <td data-label="Telefone">${formatarTelefone(c.telefone)}</td>
+                    <td data-label="Ações">
+                      <button class="btn btn-light" type="button" onclick="editarCliente('${c.id}')">Editar</button>
+                      <button class="btn btn-danger" type="button" onclick="excluirCliente('${c.id}')">Excluir</button>
+                    </td>
+                  </tr>
+                `
+              )
+              .join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function salvarProduto() {
+      const descricao = $("produtoDesc").value.trim();
+
+      if (!descricao) {
+        return alert("Informe a descrição do produto/serviço.");
+      }
+
+      const id = $("produtoId").value || uid();
+
+      const registro = {
+        id,
+        descricao,
+        unidade: $("produtoUn").value,
+        valor: Number($("produtoValor").value || 0)
+      };
+
+      const pos = produtos.findIndex((p) => p.id === id);
+
+      if (pos >= 0) {
+        produtos[pos] = registro;
+      } else {
+        produtos.unshift(registro);
+      }
+
+      salvarTudo();
+      limparProduto();
+      atualizarTela();
+
+      alert("Produto/serviço salvo.");
+    }
+
+    function editarProduto(id) {
+      const p = produtos.find((x) => x.id === id);
+
+      if (!p) return;
+
+      $("produtoId").value = p.id;
+      $("produtoDesc").value = p.descricao || "";
+      $("produtoUn").value = p.unidade || "un";
+      $("produtoValor").value = p.valor || 0;
+
+      renderUnidadePicker();
+
+      abrirAba("produtos", document.querySelectorAll(".tabs button")[2]);
+    }
+
+    function excluirProduto(id) {
+      if (!confirm("Excluir produto/serviço?")) return;
+
+      produtos = produtos.filter((p) => p.id !== id);
+
+      salvarTudo();
+      atualizarTela();
+    }
+
+    function limparProduto() {
+      $("produtoId").value = "";
+      $("produtoDesc").value = "";
+      $("produtoUn").value = "un";
+      $("produtoValor").value = "";
+
+      renderUnidadePicker();
+    }
+
+    function renderProdutos() {
+      if (!produtos.length) {
+        $("listaProdutos").innerHTML = '<div class="empty-box">Nenhum produto/serviço cadastrado.</div>';
+        return;
+      }
+
+      $("listaProdutos").innerHTML = `
+        <table class="responsive">
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th>Un.</th>
+              <th>Valor</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${produtos
+              .map(
+                (p) => `
+                  <tr>
+                    <td data-label="Descrição">
+                      <strong>${p.descricao}</strong>
+                    </td>
+                    <td data-label="Un.">${p.unidade}</td>
+                    <td data-label="Valor" class="money">${dinheiro.format(Number(p.valor || 0))}</td>
+                    <td data-label="Ações">
+                      <button class="btn btn-light" type="button" onclick="editarProduto('${p.id}')">Editar</button>
+                      <button class="btn btn-danger" type="button" onclick="excluirProduto('${p.id}')">Excluir</button>
+                    </td>
+                  </tr>
+                `
+              )
+              .join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function adicionarProduto() {
+      const id = $("produtoSelecionado").value;
+      const qtd = parseInt($("itemQtd").value || "1", 10);
+      const p = produtos.find((x) => x.id === id);
+
+      if (!p) {
+        return alert("Selecione um produto/serviço.");
+      }
+
+      if (!Number.isInteger(qtd) || qtd < 1) {
+        return alert("Informe uma quantidade inteira: 1, 2, 3...");
+      }
+
+      itensOrcamento.push({
+        id: uid(),
+        descricao: p.descricao,
+        unidade: p.unidade,
+        quantidade: qtd,
+        valor: Number(p.valor || 0),
+        subtotal: qtd * Number(p.valor || 0)
+      });
+
+      $("produtoSelecionado").value = "";
+      $("itemQtd").value = 1;
+
+      renderProdutoPicker();
+      renderItens();
+      atualizarPreview();
+    }
+
+    function adicionarManual() {
+      const descricao = prompt("Descrição do item:");
+
+      if (!descricao) return;
+
+      const qtd = parseInt(prompt("Quantidade:", "1") || "1", 10);
+
+      if (!Number.isInteger(qtd) || qtd < 1) {
+        return alert("Informe uma quantidade inteira: 1, 2, 3...");
+      }
+
+      const valor = Number(prompt("Valor unitário:", "0") || 0);
+
+      itensOrcamento.push({
+        id: uid(),
+        descricao,
+        unidade: "un",
+        quantidade: qtd,
+        valor,
+        subtotal: qtd * valor
+      });
+
+      renderItens();
+      atualizarPreview();
+    }
+
+    function removerItem(id) {
+      itensOrcamento = itensOrcamento.filter((i) => i.id !== id);
+
+      renderItens();
+      atualizarPreview();
+    }
+
+   function alterarQtd(id, qtd) {
+  const item = itensOrcamento.find((i) => i.id === id);
+
+  if (!item) return;
+
+  const quantidadeLimpa = String(qtd || "").replace(/[^0-9]/g, "");
+  const q = parseInt(quantidadeLimpa || "1", 10);
+
+  item.quantidade = !Number.isInteger(q) || q < 1 ? 1 : q;
+  item.subtotal = item.quantidade * Number(item.valor || 0);
+
+  renderItens();
+  atualizarPreview();
+}
+
+    function valorParaNumero(valor) {
+      let texto = String(valor || "0").trim();
+
+      texto = texto.split("R$").join("");
+      texto = texto.split(" ").join("");
+
+      if (texto.indexOf(",") >= 0 && texto.indexOf(".") >= 0) {
+        texto = texto.split(".").join("");
+        texto = texto.replace(",", ".");
+      } else if (texto.indexOf(",") >= 0) {
+        texto = texto.replace(",", ".");
+      }
+
+      const numero = Number(texto);
+
+      return Number.isFinite(numero) && numero >= 0 ? numero : 0;
+    }
+
+    function formatarValorInput(valor) {
+      return Number(valor || 0).toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function alterarValor(id, valor) {
+      const item = itensOrcamento.find((i) => i.id === id);
+
+      if (!item) return;
+
+      item.valor = valorParaNumero(valor);
+      item.subtotal = Number(item.quantidade || 0) * item.valor;
+
+      renderItens();
+      atualizarPreview();
+    }
+
+    function renderItens() {
+      if (!itensOrcamento.length) {
+        $("itensTela").innerHTML = '<div class="empty-box">Nenhum item adicionado.</div>';
+        return;
+      }
+
+      $("itensTela").innerHTML = itensOrcamento
+        .map(
+          (i, index) => `
+            <div class="orc-item-modern">
+              <div class="orc-item-modern-header">
+                <div class="orc-item-modern-left">
+                  <span class="orc-item-modern-badge">#${index + 1}</span>
+
+                  <div>
+                    <div class="orc-item-modern-title">${i.descricao}</div>
+                    <div class="orc-item-modern-unit">Unidade: ${i.unidade || "un"}</div>
+                  </div>
+                </div>
+
+                <button class="orc-item-modern-remove" type="button" onclick="removerItem('${i.id}')">
+                  Remover
+                </button>
+              </div>
+
+              <div class="orc-item-modern-grid">
+                <div class="orc-item-modern-field quantidade">
+                  <label>Qtd.</label>
+                <input
+  class="input-qtd-item"
+  type="text"
+  inputmode="numeric"
+  value="${i.quantidade}"
+  oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+  onblur="alterarQtd('${i.id}', this.value)"
+  onkeydown="if(event.key === 'Enter'){ this.blur(); }"
+>
+                </div>
+
+                <div class="orc-item-modern-field valor-unitario">
+                  <label>Valor unit.</label>
+                  <input
+                    type="text"
+                    inputmode="decimal"
+                    value="${formatarValorInput(i.valor)}"
+                    onblur="alterarValor('${i.id}', this.value)"
+                    onkeydown="if(event.key === 'Enter'){ this.blur(); }"
+                  >
+                </div>
+
+                <div class="orc-item-modern-field total-item">
+                  <label>Total</label>
+                  <div class="orc-item-modern-total">${dinheiro.format(i.subtotal)}</div>
+                </div>
+              </div>
+            </div>
+          `
+        )
+        .join("");
+    }
+        function htmlPreview() {
+      const cliente = clienteAtual();
+      const t = totais();
+
+      const numero = orcamentoEditandoId
+        ? orcamentos.find((o) => o.id === orcamentoEditandoId)?.numero || proximoNumero()
+        : proximoNumero();
+
+      const logoHtml = empresa.logo ? `<img src="${empresa.logo}" alt="Logo ViaTec">` : "VT";
+
+      const contatoNome = empresa.responsavel || empresa.nome;
+      const contatoCargo = empresa.cargo || "";
+      const contatoFone = somenteNumeros(empresa.whatsapp || empresa.fone);
+
+      const textoAprovacao = encodeURIComponent(
+        `Olá, ${contatoNome}! Gostaria de aprovar o orçamento ${numero} no valor de ${dinheiro.format(t.total)}.`
+      );
+
+      const linkAprovacao = contatoFone ? `https://wa.me/${contatoFone}?text=${textoAprovacao}` : "";
+
+      const linhas = itensOrcamento
+        .map(
+          (i) => `
+            <tr>
+              <td>${i.descricao}</td>
+              <td>${i.unidade || ""}</td>
+              <td>${parseInt(i.quantidade || 0, 10).toLocaleString("pt-BR")}</td>
+              <td>${dinheiro.format(Number(i.valor || 0))}</td>
+              <td><strong>${dinheiro.format(Number(i.subtotal || 0))}</strong></td>
+            </tr>
+          `
+        )
+        .join("");
+
+      return `
+        <div class="orc-head">
+          <div class="company">
+            <div class="logo-box">${logoHtml}</div>
+
+            <div>
+              <h2>${empresa.nome}</h2>
+              <p>CNPJ: ${empresa.cnpj}</p>
+              <p>Fone: ${formatarTelefone(empresa.fone)}</p>
+              ${empresa.email ? `<p>E-mail: ${empresa.email}</p>` : ""}
+              <p>${empresa.endereco}</p>
+            </div>
+          </div>
+
+          <div class="orc-info">
+            <h1>ORÇAMENTO</h1>
+            <p><strong>Nº:</strong> ${numero}</p>
+            <p><strong>Data:</strong> ${dataBR($("orcData").value)}</p>
+            <p><strong>Validade:</strong> ${dataBR($("orcValidade").value)}</p>
+            <p><strong>Status:</strong> ${$("orcStatus").value}</p>
+          </div>
+        </div>
+
+        <div class="box-grid">
+          <div class="box">
+            <h3>Cliente</h3>
+            ${
+              cliente
+                ? `
+                  <p><strong>${cliente.nome}</strong></p>
+                  <p><strong>CPF/CNPJ:</strong> ${formatarDocumento(cliente.documento)}</p>
+                  <p><strong>Telefone:</strong> ${formatarTelefone(cliente.telefone)}</p>
+                  <p><strong>E-mail:</strong> ${cliente.email || ""}</p>
+                  <p><strong>Endereço:</strong> ${enderecoCompletoCliente(cliente)}</p>
+                `
+                : '<p class="muted">Selecione um cliente.</p>'
+            }
+          </div>
+
+          <div class="box">
+            <h3>Forma de pagamento</h3>
+            <p>${($("orcPagamento").value || "A combinar").replace(/\n/g, "<br>")}</p>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Un.</th>
+              <th>Qtd.</th>
+              <th>Valor Unit.</th>
+              <th>Subtotal</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${linhas || '<tr><td colspan="5" class="muted">Adicione itens ao orçamento.</td></tr>'}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <div class="total-line">
+            <span>Subtotal</span>
+            <strong>${dinheiro.format(t.subtotal)}</strong>
+          </div>
+
+          ${
+            t.desconto > 0
+              ? `
+                <div class="total-line">
+                  <span>Desconto</span>
+                  <strong>${dinheiro.format(t.desconto)}</strong>
+                </div>
+              `
+              : ""
+          }
+
+          <div class="total-line final">
+            <span>Total</span>
+            <strong>${dinheiro.format(t.total)}</strong>
+          </div>
+        </div>
+
+        ${
+          $("orcObs").value
+            ? `
+              <div class="box" style="margin-top:14px;">
+                <h3>Observações</h3>
+                <p>${$("orcObs").value.replace(/\n/g, "<br>")}</p>
+              </div>
+            `
+            : ""
+        }
+
+        ${
+          empresa.mensagem
+            ? `
+              <div class="box" style="margin-top:14px;">
+                <h3>Mensagem</h3>
+                <p>${empresa.mensagem}</p>
+              </div>
+            `
+            : ""
+        }
+
+        <div class="aprovacao-box">
+          <h3>Gostou do orçamento?</h3>
+          <p>Para aprovar ou tirar dúvidas, fale com: <strong>${contatoNome}</strong></p>
+          ${contatoCargo ? `<p><strong>Função:</strong> ${contatoCargo}</p>` : ""}
+
+          ${
+            contatoFone
+              ? `
+                <p><strong>WhatsApp:</strong> ${formatarTelefone(empresa.whatsapp || empresa.fone)}</p>
+                <a class="whatsapp-aprovar" href="${linkAprovacao}" target="_blank">✅ Aprovar pelo WhatsApp</a>
+              `
+              : "<p>Informe um WhatsApp de contato nos dados da empresa.</p>"
+          }
+        </div>
+
+        <div class="preview-footer">
+          Orçamento gerado pela ViaTec.
+        </div>
+      `;
+    }
+
+    function atualizarPreview() {
+      const preview = $("previewOrcamento");
+
+      preview.className = empresa.timbrado ? "com-timbrado" : "";
+      preview.style.backgroundImage = empresa.timbrado ? `url('${empresa.timbrado}')` : "";
+      preview.innerHTML = htmlPreview();
+    }
+
+    function salvarOrcamento() {
+      const cliente = clienteAtual();
+
+      if (!cliente) {
+        return alert("Selecione um cliente.");
+      }
+
+      if (!itensOrcamento.length) {
+        return alert("Adicione pelo menos um item.");
+      }
+
+      const t = totais();
+      const id = orcamentoEditandoId || uid();
+      const antigo = orcamentos.find((o) => o.id === id);
+
+      const registro = {
+        id,
+        numero: antigo ? antigo.numero : proximoNumero(),
+        clienteId: cliente.id,
+        clienteNome: cliente.nome,
+        data: $("orcData").value,
+        validade: $("orcValidade").value,
+        status: $("orcStatus").value,
+        pagamento: $("orcPagamento").value,
+        observacoes: $("orcObs").value,
+        itens: JSON.parse(JSON.stringify(itensOrcamento)),
+        subtotal: t.subtotal,
+        desconto: t.desconto,
+        total: t.total,
+        criadoEm: antigo ? antigo.criadoEm : new Date().toISOString()
+      };
+
+      const pos = orcamentos.findIndex((o) => o.id === id);
+
+      if (pos >= 0) {
+        orcamentos[pos] = registro;
+      } else {
+        orcamentos.unshift(registro);
+      }
+
+      salvarTudo();
+      renderOrcamentos();
+      renderDashboardLite();
+
+      alert("Orçamento salvo com sucesso.");
+    }
+
+    function editarOrcamento(id) {
+      const o = orcamentos.find((x) => x.id === id);
+
+      if (!o) return;
+
+      orcamentoEditandoId = id;
+
+      $("orcCliente").value = o.clienteId;
+      renderClientePicker();
+
+      $("orcData").value = o.data;
+      $("orcValidade").value = o.validade;
+
+      $("orcStatus").value = o.status;
+      renderStatusPicker();
+
+      $("orcPagamento").value = o.pagamento || "";
+      $("orcObs").value = o.observacoes || "";
+      $("orcDesconto").value = o.desconto || 0;
+
+      itensOrcamento = JSON.parse(JSON.stringify(o.itens || []));
+
+      renderItens();
+      atualizarPreview();
+
+      abrirAba("orcamento", document.querySelectorAll(".tabs button")[0]);
+    }
+
+    function excluirOrcamento(id) {
+      if (!confirm("Excluir orçamento?")) return;
+
+      orcamentos = orcamentos.filter((o) => o.id !== id);
+
+      salvarTudo();
+      renderOrcamentos();
+      renderDashboardLite();
+    }
+
+    function duplicarOrcamento(id) {
+      const o = orcamentos.find((x) => x.id === id);
+
+      if (!o) return;
+
+      orcamentoEditandoId = null;
+
+      $("orcCliente").value = o.clienteId;
+      renderClientePicker();
+
+      $("orcData").value = hojeISO();
+      $("orcValidade").value = addDias(hojeISO(), 7);
+
+      $("orcStatus").value = "aberto";
+      renderStatusPicker();
+
+      $("orcPagamento").value = o.pagamento || "";
+      $("orcObs").value = o.observacoes || "";
+      $("orcDesconto").value = o.desconto || 0;
+
+      itensOrcamento = JSON.parse(JSON.stringify(o.itens || []));
+      itensOrcamento.forEach((i) => (i.id = uid()));
+
+      renderItens();
+      atualizarPreview();
+
+      abrirAba("orcamento", document.querySelectorAll(".tabs button")[0]);
+    }
+
+    function limparOrcamento() {
+      orcamentoEditandoId = null;
+
+      $("orcCliente").value = "";
+      renderClientePicker();
+
+      $("orcData").value = hojeISO();
+      $("orcValidade").value = addDias(hojeISO(), 7);
+
+      $("orcStatus").value = "aberto";
+      renderStatusPicker();
+
+      $("orcPagamento").value = "";
+      $("orcObs").value = "";
+      $("orcDesconto").value = 0;
+
+      itensOrcamento = [];
+
+      renderItens();
+      atualizarPreview();
+    }
+        function renderOrcamentos() {
+      if (!orcamentos.length) {
+        $("listaOrcamentos").innerHTML = '<div class="empty-box">Nenhum orçamento salvo.</div>';
+        return;
+      }
+
+      $("listaOrcamentos").innerHTML = `
+        <table class="responsive">
+          <thead>
+            <tr>
+              <th>Nº</th>
+              <th>Cliente</th>
+              <th>Data</th>
+              <th>Status</th>
+              <th>Total</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${orcamentos
+              .map(
+                (o) => `
+                  <tr>
+                    <td data-label="Nº"><strong>${o.numero}</strong></td>
+                    <td data-label="Cliente">${o.clienteNome}</td>
+                    <td data-label="Data">${dataBR(o.data)}</td>
+                    <td data-label="Status"><span class="status">${o.status}</span></td>
+                    <td data-label="Total" class="money">${dinheiro.format(Number(o.total || 0))}</td>
+                    <td data-label="Ações">
+                      <button class="btn btn-light" type="button" onclick="editarOrcamento('${o.id}')">Abrir</button>
+                      <button class="btn btn-success" type="button" onclick="duplicarOrcamento('${o.id}')">Duplicar</button>
+                      <button class="btn btn-danger" type="button" onclick="excluirOrcamento('${o.id}')">Excluir</button>
+                    </td>
+                  </tr>
+                `
+              )
+              .join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function baixarPDF() {
+      atualizarPreview();
+
+      const numero = orcamentoEditandoId
+        ? orcamentos.find((o) => o.id === orcamentoEditandoId)?.numero || "orcamento"
+        : "orcamento-preview";
+
+      const conteudo = $("previewOrcamento").innerHTML;
+      const classeTimbrado = empresa.timbrado ? "com-timbrado" : "";
+      const fundoTimbrado = empresa.timbrado ? "background-image:url('" + empresa.timbrado + "');" : "";
+      const janela = window.open("", "_blank");
+
+      if (!janela) {
+        alert("O navegador bloqueou a janela do PDF. Libere pop-ups para este site e tente novamente.");
+        return;
+      }
+
+      janela.document.open();
+
+      janela.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${numero}</title>
+
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 10mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1f2937;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    #pdfArea {
+      width: 190mm;
+      margin: 0 auto;
+      background: #ffffff;
+      color: #111827;
+      position: relative;
+      overflow: visible;
+      ${fundoTimbrado}
+      background-size: cover;
+      background-position: center top;
+      background-repeat: no-repeat;
+    }
+
+    #pdfArea.com-timbrado::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,.10);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #pdfArea > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .orc-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      border-bottom: 4px solid #0057b8;
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+      break-inside: avoid;
+    }
+
+    .company {
+      display: flex;
+      gap: 12px;
+    }
+
+    .logo-box {
+      width: 72px;
+      height: 72px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #0057b8, #00a859);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 900;
+      flex: 0 0 auto;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+
+    .logo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #ffffff;
+      padding: 4px;
+    }
+
+    .company h2 {
+      margin: 0;
+      color: #003b7a;
+      font-size: 20px;
+    }
+
+    .company p,
+    .orc-info p {
+      margin: 3px 0;
+      font-size: 12px;
+      color: #4b5563;
+    }
+
+    .orc-info {
+      text-align: right;
+    }
+
+    .orc-info h1 {
+      margin: 0 0 8px;
+      color: #003b7a;
+      font-size: 28px;
+    }
+
+    .box-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+      break-inside: avoid;
+    }
+
+    .box {
+      border: 1px solid #e5e7eb;
+      border-radius: 13px;
+      padding: 12px;
+      background: rgba(255,255,255,.94);
+      break-inside: avoid;
+    }
+
+    .box h3 {
+      margin: 0 0 8px;
+      color: #003b7a;
+      font-size: 15px;
+    }
+
+    .box p {
+      margin: 3px 0;
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    th,
+    td {
+      padding: 8px 9px;
+      border-bottom: 1px solid #edf1f7;
+      text-align: left;
+      font-size: 12px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eaf3ff;
+      color: #003b7a;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .totals {
+      margin-top: 14px;
+      margin-left: auto;
+      width: 78mm;
+      background: linear-gradient(135deg, #eaf3ff, #e8fff4);
+      border-radius: 14px;
+      padding: 12px;
+      break-inside: avoid;
+    }
+
+    .total-line {
+      display: flex;
+      justify-content: space-between;
+      margin: 6px 0;
+      font-size: 13px;
+    }
+
+    .total-line.final {
+      font-size: 20px;
+      font-weight: 900;
+      color: #003b7a;
+      border-top: 1px solid rgba(0,87,184,.18);
+      padding-top: 8px;
+    }
+
+    .aprovacao-box {
+      margin-top: 14px;
+      border: 1px solid #c9f3dd;
+      background: #e8fff4;
+      border-radius: 14px;
+      padding: 12px;
+      break-inside: avoid;
+    }
+
+    .aprovacao-box h3 {
+      margin: 0 0 8px;
+      color: #007a41;
+      font-size: 15px;
+    }
+
+    .aprovacao-box p {
+      margin: 4px 0;
+      font-size: 12px;
+    }
+
+    .whatsapp-aprovar {
+      display: inline-flex;
+      margin-top: 8px;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 13px;
+      border-radius: 12px;
+      background: linear-gradient(135deg,#00a859,#007a41);
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .preview-footer {
+      border-top: 1px solid #e5e7eb;
+      margin-top: 14px;
+      padding-top: 10px;
+      font-size: 11px;
+      color: #4b5563;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      #pdfArea {
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="pdfArea" class="${classeTimbrado}">
+    ${conteudo}
+  </div>
+
+  <script>
+    window.onload = function () {
+      setTimeout(function () {
+        window.print();
+      }, 350);
+    };
+  <\/script>
+</body>
+</html>`);
+
+      janela.document.close();
+    }
+
+    function enviarWhatsApp() {
+      const cliente = clienteAtual();
+
+      if (!cliente) {
+        return alert("Selecione um cliente.");
+      }
+
+      const t = totais();
+
+      const itens = itensOrcamento
+        .map((i) => `• ${i.descricao} - ${i.quantidade} ${i.unidade} x ${dinheiro.format(i.valor)} = ${dinheiro.format(i.subtotal)}`)
+        .join("%0A");
+
+      const texto = `Olá, ${cliente.nome}!%0A%0ASegue orçamento da ${empresa.nome}:%0A%0A${itens}%0A%0ATotal: ${dinheiro.format(t.total)}%0AValidade: ${dataBR($("orcValidade").value)}%0A%0A${empresa.mensagem}`;
+
+      const fone = somenteNumeros(cliente.telefone);
+
+      window.open(fone ? `https://wa.me/${fone}?text=${texto}` : `https://wa.me/?text=${texto}`, "_blank");
+    }
+
+    function salvarEmpresa() {
+      empresa.nome = $("empNome").value.trim();
+      empresa.cnpj = $("empCnpj").value.trim();
+      empresa.fone = $("empFone").value.trim();
+      empresa.email = $("empEmail").value.trim();
+      empresa.endereco = $("empEndereco").value.trim();
+      empresa.mensagem = $("empMsg").value.trim();
+      empresa.responsavel = $("empResponsavel").value.trim();
+      empresa.cargo = $("empCargo").value.trim();
+      empresa.whatsapp = somenteNumeros($("empWhatsapp").value.trim());
+
+      salvarTudo();
+      atualizarPreview();
+
+      alert("Dados da empresa salvos.");
+    }
+
+    function carregarEmpresaTela() {
+      $("empNome").value = empresa.nome;
+      $("empCnpj").value = empresa.cnpj;
+      $("empFone").value = empresa.fone;
+      $("empEmail").value = empresa.email;
+      $("empEndereco").value = empresa.endereco;
+      $("empMsg").value = empresa.mensagem;
+      $("empResponsavel").value = empresa.responsavel || "";
+      $("empCargo").value = empresa.cargo || "";
+      $("empWhatsapp").value = formatarTelefone(empresa.whatsapp || empresa.fone || "");
+    }
+
+    function carregarTimbrado(event) {
+      const file = event.target.files && event.target.files[0];
+
+      if (!file) return;
+
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        empresa.timbrado = reader.result;
+        salvarTudo();
+        atualizarPreview();
+        alert("Folha timbrada carregada.");
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    function carregarLogo(event) {
+      const file = event.target.files && event.target.files[0];
+
+      if (!file) return;
+
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        empresa.logo = reader.result;
+        salvarTudo();
+        atualizarPreview();
+        alert("Logo carregada.");
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    function removerTimbrado() {
+      empresa.timbrado = "";
+      $("empTimbrado").value = "";
+
+      salvarTudo();
+      atualizarPreview();
+
+      alert("Folha timbrada removida.");
+    }
+
+    function removerLogo() {
+      empresa.logo = "";
+
+      if ($("empLogo")) {
+        $("empLogo").value = "";
+      }
+
+      salvarTudo();
+      atualizarPreview();
+
+      alert("Logo removida.");
+    }
+
+    function renderDashboardLite() {
+      $("dataHoje").textContent = new Date().toLocaleDateString("pt-BR");
+    }
+
+    function atualizarTela() {
+      renderSelects();
+      renderClientes();
+      renderProdutos();
+      renderItens();
+      renderOrcamentos();
+      carregarEmpresaTela();
+      atualizarPreview();
+      renderDashboardLite();
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      carregarTudo();
+
+      $("orcData").value = hojeISO();
+      $("orcValidade").value = addDias(hojeISO(), 7);
+
+      atualizarTela();
+    });
+  </script>
+</body>
+</html>
