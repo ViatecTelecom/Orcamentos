@@ -2131,12 +2131,20 @@
 
     const SUPABASE_URL = "https://dbpjipihsbuseaxjlhsv.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0pzvVmNQvhHBgeTIK7yR8w_Kxf4UNeK";
-    const ADMIN_EMAIL = "guilherme@viatectelecom.com.br";
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     let usuarioAtual = null;
     let usuarioEhAdmin = false;
     let orcamentosOutrosUsuarios = [];
     let salvamentoTimer = null;
+
+    async function verificarSeAdmin() {
+      const { data, error } = await supabaseClient.rpc("is_admin");
+      if (error) {
+        console.error("Erro ao verificar administrador:", error);
+        return false;
+      }
+      return data === true;
+    }
 
     async function salvarTudo() {
       localStorage.setItem("vt_clientes", JSON.stringify(clientes));
@@ -3775,7 +3783,7 @@
           }
 
           usuarioAtual = data.user;
-          usuarioEhAdmin = usuarioAtual.email?.toLowerCase() === ADMIN_EMAIL;
+          usuarioEhAdmin = await verificarSeAdmin();
           tela.remove();
           resolve();
         });
@@ -3787,7 +3795,7 @@
       usuarioAtual = data.session?.user || null;
 
       if (!usuarioAtual) await criarTelaLogin();
-      usuarioEhAdmin = usuarioAtual.email?.toLowerCase() === ADMIN_EMAIL;
+      usuarioEhAdmin = await verificarSeAdmin();
     }
 
     async function sairDoSistema() {
