@@ -8,6 +8,7 @@
 
   <!-- Biblioteca mantida para compatibilidade caso queira voltar ao PDF por HTML no futuro -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root {
@@ -2128,22 +2129,64 @@
       return (cliente.endereco || "") + (cliente.numero ? ", Nº " + cliente.numero : "");
     }
 
-    function salvarTudo() {
+    const SUPABASE_URL = "https://dbpjipihsbuseaxjlhsv.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0pzvVmNQvhHBgeTIK7yR8w_Kxf4UNeK";
+    const ADMIN_EMAIL = "guilherme@viatectelecom.com.br";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    let usuarioAtual = null;
+    let salvamentoTimer = null;
+
+    async function salvarTudo() {
       localStorage.setItem("vt_clientes", JSON.stringify(clientes));
       localStorage.setItem("vt_produtos", JSON.stringify(produtos));
       localStorage.setItem("vt_orcamentos", JSON.stringify(orcamentos));
       localStorage.setItem("vt_empresa", JSON.stringify(empresa));
+
+      if (!usuarioAtual) return;
+
+      clearTimeout(salvamentoTimer);
+      salvamentoTimer = setTimeout(async () => {
+        const { error } = await supabaseClient.from("app_state").upsert({
+          user_id: usuarioAtual.id,
+          clientes,
+          produtos,
+          orcamentos,
+          empresa,
+          updated_at: new Date().toISOString()
+        });
+
+        if (error) {
+          console.error("Erro ao salvar no Supabase:", error);
+          alert("Não foi possível sincronizar com o banco. Os dados continuam salvos neste navegador.");
+        }
+      }, 250);
     }
 
-    function carregarTudo() {
-      clientes = JSON.parse(localStorage.getItem("vt_clientes") || "[]");
-      produtos = JSON.parse(localStorage.getItem("vt_produtos") || "[]");
-      orcamentos = JSON.parse(localStorage.getItem("vt_orcamentos") || "[]");
+    async function carregarTudo() {
+      const clientesLocais = JSON.parse(localStorage.getItem("vt_clientes") || "[]");
+      const produtosLocais = JSON.parse(localStorage.getItem("vt_produtos") || "[]");
+      const orcamentosLocais = JSON.parse(localStorage.getItem("vt_orcamentos") || "[]");
+      const empresaLocal = JSON.parse(localStorage.getItem("vt_empresa") || "null");
 
-      const empSalva = JSON.parse(localStorage.getItem("vt_empresa") || "null");
+      const { data, error } = await supabaseClient
+        .from("app_state")
+        .select("clientes, produtos, orcamentos, empresa")
+        .eq("user_id", usuarioAtual.id)
+        .maybeSingle();
 
-      if (empSalva) {
-        empresa = { ...empresa, ...empSalva };
+      if (error) throw error;
+
+      if (data) {
+        clientes = data.clientes || [];
+        produtos = data.produtos || [];
+        orcamentos = data.orcamentos || [];
+        if (data.empresa) empresa = { ...empresa, ...data.empresa };
+      } else {
+        clientes = clientesLocais;
+        produtos = produtosLocais;
+        orcamentos = orcamentosLocais;
+        if (empresaLocal) empresa = { ...empresa, ...empresaLocal };
+        await salvarTudo();
       }
 
       if (!empresa.logo) empresa.logo = "empLogo.png";
@@ -3641,14 +3684,99 @@
       renderDashboardLite();
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      carregarTudo();
+    function criarTelaLogin() {
+      const tela = document.createElement("div");
+      tela.id = "telaLoginAdmin";
+      tela.innerHTML = `
+        <div style="width:min(420px,calc(100% - 32px));background:#fff;padding:30px;border-radius:18px;box-shadow:0 24px 70px rgba(0,43,92,.25)">
+          <h2 style="margin:0 0 8px;color:#003b7a">Acesso administrativo</h2>
+          <p style="margin:0 0 22px;color:#64748b">Entre para acessar os orçamentos da ViaTec.</p>
+          <form id="formLoginAdmin">
+            <label style="display:block;margin-bottom:6px;font-weight:700">E-mail</label>
+            <input id="loginEmail" type="email" autocomplete="username" required value="${ADMIN_EMAIL}" readonly
+              style="width:100%;padding:12px;border:1px solid #d9e5f2;border-radius:10px;margin-bottom:14px">
+            <label style="display:block;margin-bottom:6px;font-weight:700">Senha</label>
+            <input id="loginSenha" type="password" autocomplete="current-password" required
+              style="width:100%;padding:12px;border:1px solid #d9e5f2;border-radius:10px;margin-bottom:16px">
+            <button class="btn btn-primary" type="submit" style="width:100%">Entrar</button>
+            <p id="erroLogin" style="display:none;color:#dc2626;margin:14px 0 0"></p>
+          </form>
+        </div>`;
+      Object.assign(tela.style, {
+        position: "fixed", inset: "0", zIndex: "99999", display: "flex",
+        alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#003b7a,#0057b8 55%,#00a859)"
+      });
+      document.body.appendChild(tela);
 
-      $("orcData").value = hojeISO();
-      $("orcValidade").value = addDias(hojeISO(), 7);
+      return new Promise((resolve) => {
+        $("formLoginAdmin").addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const botao = event.submitter;
+          const erro = $("erroLogin");
+          botao.disabled = true;
+          botao.textContent = "Entrando...";
+          erro.style.display = "none";
 
-      atualizarTela();
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: $("loginEmail").value,
+            password: $("loginSenha").value
+          });
+
+          botao.disabled = false;
+          botao.textContent = "Entrar";
+
+          if (error) {
+            erro.textContent = "E-mail ou senha inválidos.";
+            erro.style.display = "block";
+            return;
+          }
+
+          usuarioAtual = data.user;
+          tela.remove();
+          resolve();
+        });
+      });
+    }
+
+    async function autenticarAdministrador() {
+      const { data } = await supabaseClient.auth.getSession();
+      usuarioAtual = data.session?.user || null;
+
+      if (usuarioAtual?.email !== ADMIN_EMAIL) {
+        if (usuarioAtual) await supabaseClient.auth.signOut();
+        usuarioAtual = null;
+        await criarTelaLogin();
+      }
+    }
+
+    async function sairDoSistema() {
+      await supabaseClient.auth.signOut();
+      location.reload();
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        await autenticarAdministrador();
+        await carregarTudo();
+
+        $("orcData").value = hojeISO();
+        $("orcValidade").value = addDias(hojeISO(), 7);
+
+        const sair = document.createElement("button");
+        sair.className = "btn btn-light";
+        sair.type = "button";
+        sair.textContent = "Sair";
+        sair.onclick = sairDoSistema;
+        document.querySelector("header")?.appendChild(sair);
+
+        atualizarTela();
+      } catch (error) {
+        console.error(error);
+        alert("Não foi possível conectar ao banco de dados. Confira a configuração do Supabase.");
+      }
     });
   </script>
 </body>
 </html>
+
+
