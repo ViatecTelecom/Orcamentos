@@ -1865,7 +1865,7 @@
 
     <section id="produtos" class="section">
       <div class="grid grid-2">
-        <div class="card">
+        <div class="card" id="produtoCadastroCard">
                     <h2>Produto/Serviço</h2>
 
           <input type="hidden" id="produtoId" />
@@ -2134,6 +2134,8 @@
     const ADMIN_EMAIL = "guilherme@viatectelecom.com.br";
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     let usuarioAtual = null;
+    let usuarioEhAdmin = false;
+    let orcamentosOutrosUsuarios = [];
     let salvamentoTimer = null;
 
     async function salvarTudo() {
@@ -2148,8 +2150,8 @@
       salvamentoTimer = setTimeout(async () => {
         const { error } = await supabaseClient.from("app_state").upsert({
           user_id: usuarioAtual.id,
+          user_email: usuarioAtual.email,
           clientes,
-          produtos,
           orcamentos,
           empresa,
           updated_at: new Date().toISOString()
@@ -2168,29 +2170,61 @@
       const orcamentosLocais = JSON.parse(localStorage.getItem("vt_orcamentos") || "[]");
       const empresaLocal = JSON.parse(localStorage.getItem("vt_empresa") || "null");
 
-      const { data, error } = await supabaseClient
+      const { data: estados, error } = await supabaseClient
         .from("app_state")
-        .select("clientes, produtos, orcamentos, empresa")
-        .eq("user_id", usuarioAtual.id)
-        .maybeSingle();
+        .select("user_id, user_email, clientes, orcamentos, empresa");
 
       if (error) throw error;
 
-      if (data) {
-        clientes = data.clientes || [];
-        produtos = data.produtos || [];
-        orcamentos = data.orcamentos || [];
-        if (data.empresa) empresa = { ...empresa, ...data.empresa };
+      const estadoProprio = (estados || []).find((item) => item.user_id === usuarioAtual.id);
+
+      if (estadoProprio) {
+        clientes = estadoProprio.clientes || [];
+        orcamentos = estadoProprio.orcamentos || [];
+        orcamentosOutrosUsuarios = usuarioEhAdmin
+          ? (estados || [])
+              .filter((item) => item.user_id !== usuarioAtual.id)
+              .flatMap((item) => (item.orcamentos || []).map((orcamento) => ({
+                ...orcamento,
+                _somenteLeitura: true,
+                _ownerEmail: item.user_email || "Usuário"
+              })))
+          : [];
+        if (estadoProprio.empresa) empresa = { ...empresa, ...estadoProprio.empresa };
       } else {
         clientes = clientesLocais;
-        produtos = produtosLocais;
         orcamentos = orcamentosLocais;
         if (empresaLocal) empresa = { ...empresa, ...empresaLocal };
         await salvarTudo();
       }
 
+      const { data: catalogo, error: erroCatalogo } = await supabaseClient
+        .from("shared_products")
+        .select("produtos")
+        .eq("id", 1)
+        .maybeSingle();
+
+      if (erroCatalogo) throw erroCatalogo;
+      produtos = catalogo?.produtos || [];
+
+      if (!catalogo && usuarioEhAdmin && produtosLocais.length) {
+        produtos = produtosLocais;
+        await salvarProdutosCompartilhados();
+      }
+
       if (!empresa.logo) empresa.logo = "empLogo.png";
       if (!empresa.whatsapp) empresa.whatsapp = "555535281032";
+    }
+
+    async function salvarProdutosCompartilhados() {
+      if (!usuarioEhAdmin) return alert("Somente o administrador pode alterar produtos.");
+      const { error } = await supabaseClient.from("shared_products").upsert({
+        id: 1,
+        produtos,
+        updated_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      localStorage.setItem("vt_produtos", JSON.stringify(produtos));
     }
 
     function abrirAba(id, botao) {
@@ -2660,6 +2694,7 @@
     }
 
     function salvarProduto() {
+      if (!usuarioEhAdmin) return alert("Somente o administrador pode cadastrar produtos.");
       const descricao = $("produtoDesc").value.trim();
 
       if (!descricao) {
@@ -2683,7 +2718,7 @@
         produtos.unshift(registro);
       }
 
-      salvarTudo();
+      salvarProdutosCompartilhados();
       limparProduto();
       atualizarTela();
 
@@ -2691,6 +2726,7 @@
     }
 
     function editarProduto(id) {
+      if (!usuarioEhAdmin) return;
       const p = produtos.find((x) => x.id === id);
 
       if (!p) return;
@@ -2706,11 +2742,12 @@
     }
 
     function excluirProduto(id) {
+      if (!usuarioEhAdmin) return alert("Somente o administrador pode excluir produtos.");
       if (!confirm("Excluir produto/serviço?")) return;
 
       produtos = produtos.filter((p) => p.id !== id);
 
-      salvarTudo();
+      salvarProdutosCompartilhados();
       atualizarTela();
     }
 
@@ -2736,7 +2773,7 @@
               <th>Descrição</th>
               <th>Un.</th>
               <th>Valor</th>
-              <th>Ações</th>
+              ${usuarioEhAdmin ? "<th>Ações</th>" : ""}
             </tr>
           </thead>
           <tbody>
@@ -2749,10 +2786,10 @@
                     </td>
                     <td data-label="Un.">${p.unidade}</td>
                     <td data-label="Valor" class="money">${dinheiro.format(Number(p.valor || 0))}</td>
-                    <td data-label="Ações">
+                    ${usuarioEhAdmin ? `<td data-label="Ações">
                       <button class="btn btn-light" type="button" onclick="editarProduto('${p.id}')">Editar</button>
                       <button class="btn btn-danger" type="button" onclick="excluirProduto('${p.id}')">Excluir</button>
-                    </td>
+                    </td>` : ""}
                   </tr>
                 `
               )
@@ -3242,7 +3279,11 @@
       atualizarPreview();
     }
         function renderOrcamentos() {
-      if (!orcamentos.length) {
+      const orcamentosVisiveis = usuarioEhAdmin
+        ? [...orcamentos, ...orcamentosOutrosUsuarios]
+        : orcamentos;
+
+      if (!orcamentosVisiveis.length) {
         $("listaOrcamentos").innerHTML = '<div class="empty-box">Nenhum orçamento salvo.</div>';
         return;
       }
@@ -3261,19 +3302,21 @@
           </thead>
 
           <tbody>
-            ${orcamentos
+            ${orcamentosVisiveis
               .map(
                 (o) => `
                   <tr>
                     <td data-label="Nº"><strong>${o.numero}</strong></td>
-                    <td data-label="Cliente">${o.clienteNome}</td>
+                    <td data-label="Cliente">${o.clienteNome}${o._ownerEmail ? `<br><span class="muted">${o._ownerEmail}</span>` : ""}</td>
                     <td data-label="Data">${dataBR(o.data)}</td>
                     <td data-label="Status"><span class="status">${o.status}</span></td>
                     <td data-label="Total" class="money">${dinheiro.format(Number(o.total || 0))}</td>
                     <td data-label="Ações">
-                      <button class="btn btn-light" type="button" onclick="editarOrcamento('${o.id}')">Abrir</button>
-                      <button class="btn btn-success" type="button" onclick="duplicarOrcamento('${o.id}')">Duplicar</button>
-                      <button class="btn btn-danger" type="button" onclick="excluirOrcamento('${o.id}')">Excluir</button>
+                      ${o._somenteLeitura
+                        ? '<span class="muted">Somente consulta</span>'
+                        : `<button class="btn btn-light" type="button" onclick="editarOrcamento('${o.id}')">Abrir</button>
+                           <button class="btn btn-success" type="button" onclick="duplicarOrcamento('${o.id}')">Duplicar</button>
+                           <button class="btn btn-danger" type="button" onclick="excluirOrcamento('${o.id}')">Excluir</button>`}
                     </td>
                   </tr>
                 `
@@ -3689,11 +3732,11 @@
       tela.id = "telaLoginAdmin";
       tela.innerHTML = `
         <div style="width:min(420px,calc(100% - 32px));background:#fff;padding:30px;border-radius:18px;box-shadow:0 24px 70px rgba(0,43,92,.25)">
-          <h2 style="margin:0 0 8px;color:#003b7a">Acesso administrativo</h2>
+          <h2 style="margin:0 0 8px;color:#003b7a">Acesso ao sistema</h2>
           <p style="margin:0 0 22px;color:#64748b">Entre para acessar os orçamentos da ViaTec.</p>
           <form id="formLoginAdmin">
             <label style="display:block;margin-bottom:6px;font-weight:700">E-mail</label>
-            <input id="loginEmail" type="email" autocomplete="username" required value="${ADMIN_EMAIL}" readonly
+            <input id="loginEmail" type="email" autocomplete="username" required
               style="width:100%;padding:12px;border:1px solid #d9e5f2;border-radius:10px;margin-bottom:14px">
             <label style="display:block;margin-bottom:6px;font-weight:700">Senha</label>
             <input id="loginSenha" type="password" autocomplete="current-password" required
@@ -3732,21 +3775,19 @@
           }
 
           usuarioAtual = data.user;
+          usuarioEhAdmin = usuarioAtual.email?.toLowerCase() === ADMIN_EMAIL;
           tela.remove();
           resolve();
         });
       });
     }
 
-    async function autenticarAdministrador() {
+    async function autenticarUsuario() {
       const { data } = await supabaseClient.auth.getSession();
       usuarioAtual = data.session?.user || null;
 
-      if (usuarioAtual?.email !== ADMIN_EMAIL) {
-        if (usuarioAtual) await supabaseClient.auth.signOut();
-        usuarioAtual = null;
-        await criarTelaLogin();
-      }
+      if (!usuarioAtual) await criarTelaLogin();
+      usuarioEhAdmin = usuarioAtual.email?.toLowerCase() === ADMIN_EMAIL;
     }
 
     async function sairDoSistema() {
@@ -3756,8 +3797,11 @@
 
     document.addEventListener("DOMContentLoaded", async () => {
       try {
-        await autenticarAdministrador();
+        await autenticarUsuario();
         await carregarTudo();
+
+        const cadastroProduto = $("produtoCadastroCard");
+        if (cadastroProduto) cadastroProduto.style.display = usuarioEhAdmin ? "block" : "none";
 
         $("orcData").value = hojeISO();
         $("orcValidade").value = addDias(hojeISO(), 7);
@@ -3778,5 +3822,3 @@
   </script>
 </body>
 </html>
-
-
